@@ -84,16 +84,59 @@ class CheckSession(Resource):
         
         return {}, 401
 
+
 class MemberOnlyIndex(Resource):
     
     def get(self):
-        pass
+        user_id = session.get('user_id')
+        if not user_id:
+            return {"message": "Unauthorized access"}, 401
+
+        user = User.query.get(user_id)
+        if not user:
+            return {"message": "User not found"}, 401
+        
+        articles = Article.query.filter(Article.is_member_only == True).all()
+        articles_data = [{
+            "id": article.id,
+            "author": article.author,
+            "title": article.title,
+            "content": article.content,
+            "preview": article.preview,
+            "minutes_to_read": article.minutes_to_read,
+            "is_member_only": article.is_member_only,
+            # "date": article.date.isoformat()  # Adjust formatting as needed
+        } for article in articles]
+
+        return {"articles": articles_data}, 200
 
 class MemberOnlyArticle(Resource):
     
     def get(self, id):
-        pass
+        user_id = session.get('user_id')
+        if not user_id:
+            return {"message": "Unauthorized access"}, 401
 
+        user = User.query.get(user_id)
+        if not user:
+            return {"message": "User not found"}, 401
+        
+        article = Article.query.filter(Article.id == id, Article.is_member_only == True).first()
+        if article:
+            article_data = {
+                "id": article.id,
+                "author": article.author,
+                "title": article.title,
+                "content": article.content,
+                "preview": article.preview,
+                "minutes_to_read": article.minutes_to_read,
+                "is_member_only": article.is_member_only,
+                # "date": article.date.isoformat() 
+            }
+            return article_data, 200
+        else:
+            return {"message": "Article not found or not accessible"}, 404
+        
 api.add_resource(ClearSession, '/clear', endpoint='clear')
 api.add_resource(IndexArticle, '/articles', endpoint='article_list')
 api.add_resource(ShowArticle, '/articles/<int:id>', endpoint='show_article')
@@ -105,4 +148,4 @@ api.add_resource(MemberOnlyArticle, '/members_only_articles/<int:id>', endpoint=
 
 
 if __name__ == '__main__':
-    app.run(port=5555, debug=True)
+    app.run(port=5501, debug=True)
